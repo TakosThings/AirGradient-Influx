@@ -23,7 +23,6 @@ MIT License
 
 */
 
-
 #include <AirGradient.h>
 #include <WiFiManager.h>
 #include <ESP8266WiFi.h>
@@ -35,10 +34,6 @@ AirGradient ag = AirGradient();
 
 // Display bottom right
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
-
-// Replace above if you have display on top left
-//U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R2, /* reset=*/ U8X8_PIN_NONE);
-
 
 // CONFIGURATION START
 
@@ -53,6 +48,7 @@ boolean connectWIFI=true;
 
 // CONFIGURATION END
 
+// INTERVALS START
 
 unsigned long currentMillis = 0;
 
@@ -75,14 +71,15 @@ unsigned long previousTempHum = 0;
 float temp = 0;
 int hum = 0;
 
-void setup()
-{
+// INTERVALS END
+
+void setup() {
   Serial.begin(115200);
 
   u8g2.begin();
   updateOLED();
 
-    if (connectWIFI) {
+  if (connectWIFI) {
     connectToWifi();
   }
 
@@ -94,8 +91,7 @@ void setup()
 }
 
 
-void loop()
-{
+void loop() {
   currentMillis = millis();
   updateOLED();
   updateCo2();
@@ -104,107 +100,103 @@ void loop()
   sendToServer();
 }
 
-void updateCo2()
-{
-    if (currentMillis - previousCo2 >= co2Interval) {
-      previousCo2 += co2Interval;
-      Co2 = ag.getCO2_Raw();
-      Serial.println(String(Co2));
-    }
+void updateCo2() {
+  if (currentMillis - previousCo2 >= co2Interval) {
+    previousCo2 += co2Interval;
+    Co2 = ag.getCO2_Raw();
+    Serial.println(String(Co2));
+  }
 }
 
-void updatePm25()
-{
-    if (currentMillis - previousPm25 >= pm25Interval) {
-      previousPm25 += pm25Interval;
-      pm25 = ag.getPM2_Raw();
-      Serial.println(String(pm25));
-    }
+void updatePm25() {
+  if (currentMillis - previousPm25 >= pm25Interval) {
+    previousPm25 += pm25Interval;
+    pm25 = ag.getPM2_Raw();
+    Serial.println(String(pm25));
+  }
 }
 
-void updateTempHum()
-{
-    if (currentMillis - previousTempHum >= tempHumInterval) {
-      previousTempHum += tempHumInterval;
-      TMP_RH result = ag.periodicFetchData();
-      temp = result.t;
-      hum = result.rh;
-      Serial.println(String(temp));
-    }
+void updateTempHum(){
+  if (currentMillis - previousTempHum >= tempHumInterval) {
+    previousTempHum += tempHumInterval;
+    TMP_RH result = ag.periodicFetchData();
+    temp = result.t;
+    hum = result.rh;
+    Serial.println(String(temp));
+  }
 }
 
 void updateOLED() {
-   if (currentMillis - previousOled >= oledInterval) {
-     previousOled += oledInterval;
+  if (currentMillis - previousOled >= oledInterval) {
+    previousOled += oledInterval;
 
     String ln3;
     String ln1 = "PM:" + String(pm25) +  " AQI:" + String(PM_TO_AQI_US(pm25)) ;
     String ln2 = "CO2:" + String(Co2);
 
-      if (inF) {
-        ln3 = "F:" + String((temp* 9 / 5) + 32) + " H:" + String(hum)+"%";
-        } else {
-        ln3 = "C:" + String(temp) + " H:" + String(hum)+"%";
-       }
-     updateOLED2(ln1, ln2, ln3);
-   }
+    if (inF) {
+      ln3 = "F:" + String((temp* 9 / 5) + 32) + " H:" + String(hum)+"%";
+    } else {
+      ln3 = "C:" + String(temp) + " H:" + String(hum)+"%";
+    }
+    updateOLED2(ln1, ln2, ln3);
+  }
 }
 
 void updateOLED2(String ln1, String ln2, String ln3) {
-      char buf[9];
-          u8g2.firstPage();
-          u8g2.firstPage();
-          do {
-          u8g2.setFont(u8g2_font_t0_16_tf);
-          u8g2.drawStr(1, 10, String(ln1).c_str());
-          u8g2.drawStr(1, 30, String(ln2).c_str());
-          u8g2.drawStr(1, 50, String(ln3).c_str());
-            } while ( u8g2.nextPage() );
+  char buf[9];
+  u8g2.firstPage();
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_t0_16_tf);
+    u8g2.drawStr(1, 10, String(ln1).c_str());
+    u8g2.drawStr(1, 30, String(ln2).c_str());
+    u8g2.drawStr(1, 50, String(ln3).c_str());
+  } while ( u8g2.nextPage() );
 }
 
 void sendToServer() {
-   if (currentMillis - previoussendToServer >= sendToServerInterval) {
-     previoussendToServer += sendToServerInterval;
+  if (currentMillis - previoussendToServer >= sendToServerInterval) {
+    previoussendToServer += sendToServerInterval;
 
-      String payload = "{\"wifi\":" + String(WiFi.RSSI())
-      + (Co2 < 0 ? "" : ", \"rco2\":" + String(Co2))
-      + (pm25 < 0 ? "" : ", \"pm02\":" + String(pm25))
-      + ", \"atmp\":" + String(temp)
-      + (hum < 0 ? "" : ", \"rhum\":" + String(hum))
-      + "}";
+    String payload = "{\"wifi\":" + String(WiFi.RSSI())
+    + (Co2 < 0 ? "" : ", \"rco2\":" + String(Co2))
+    + (pm25 < 0 ? "" : ", \"pm02\":" + String(pm25))
+    + ", \"atmp\":" + String(temp)
+    + (hum < 0 ? "" : ", \"rhum\":" + String(hum))
+    + "}";
 
-      if(WiFi.status()== WL_CONNECTED){
-        Serial.println(payload);
-        String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(), HEX) + "/measures";
-        Serial.println(POSTURL);
-        WiFiClient client;
-        HTTPClient http;
-        http.begin(client, POSTURL);
-        http.addHeader("content-type", "application/json");
-        int httpCode = http.POST(payload);
-        String response = http.getString();
-        Serial.println(httpCode);
-        Serial.println(response);
-        http.end();
-      }
-      else {
-        Serial.println("WiFi Disconnected");
-      }
-   }
+    if(WiFi.status()== WL_CONNECTED) {
+      Serial.println(payload);
+      String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(), HEX) + "/measures";
+      Serial.println(POSTURL);
+      WiFiClient client;
+      HTTPClient http;
+      http.begin(client, POSTURL);
+      http.addHeader("content-type", "application/json");
+      int httpCode = http.POST(payload);
+      String response = http.getString();
+      Serial.println(httpCode);
+      Serial.println(response);
+      http.end();
+    } else {
+      Serial.println("WiFi Disconnected");
+    }
+  }
 }
 
 // Wifi Manager
- void connectToWifi() {
-   WiFiManager wifiManager;
-   //WiFi.disconnect(); //to delete previous saved hotspot
-   String HOTSPOT = "AG-" + String(ESP.getChipId(), HEX);
-   updateOLED2("60s to connect", "to Wifi Hotspot", HOTSPOT);
-   wifiManager.setTimeout(60);
-   if (!wifiManager.autoConnect((const char * ) HOTSPOT.c_str())) {
-     updateOLED2("booting into", "offline mode", "");
-     Serial.println("failed to connect and hit timeout");
-     delay(6000);
-   }
+void connectToWifi() {
+  WiFiManager wifiManager;
+  //WiFi.disconnect(); //to delete previous saved hotspot
+  String HOTSPOT = "AG-" + String(ESP.getChipId(), HEX);
+  updateOLED2("60s to connect", "to Wifi Hotspot", HOTSPOT);
+  wifiManager.setTimeout(60);
+  if (!wifiManager.autoConnect((const char * ) HOTSPOT.c_str())) {
+    updateOLED2("booting into", "offline mode", "");
+    Serial.println("failed to connect and hit timeout");
+    delay(6000);
+  }
 }
 
 // Calculate PM2.5 US AQI
