@@ -104,7 +104,9 @@ void updateCo2() {
   if (currentMillis - previousCo2 >= co2Interval) {
     previousCo2 += co2Interval;
     Co2 = ag.getCO2_Raw();
+    Serial.print("Co2 :");
     Serial.println(String(Co2));
+    Serial.println();
   }
 }
 
@@ -112,6 +114,7 @@ void updatePm25() {
   if (currentMillis - previousPm25 >= pm25Interval) {
     previousPm25 += pm25Interval;
     pm25 = ag.getPM2_Raw();
+    Serial.print("PM25: ");
     Serial.println(String(pm25));
   }
 }
@@ -122,7 +125,10 @@ void updateTempHum(){
     TMP_RH result = ag.periodicFetchData();
     temp = result.t;
     hum = result.rh;
+    Serial.print("Temp: ");
     Serial.println(String(temp));
+    Serial.print("Hum : ");
+    Serial.println(String(hum));
   }
 }
 
