@@ -77,6 +77,7 @@ void setup() {
   Serial.begin(115200);
 
   u8g2.begin();
+  u8g2.setContrast(50);
   updateOLED();
 
   if (connectWIFI) {
