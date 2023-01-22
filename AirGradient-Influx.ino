@@ -29,22 +29,26 @@ MIT License
 #include <ESP8266HTTPClient.h>
 #include <WiFiClient.h>
 #include <U8g2lib.h>
+#include <InfluxDbClient.h>
+#include "arduino_secrets.h"
 
 AirGradient ag = AirGradient();
+InfluxDBClient influxClient(INFLUXDB_URL, INFLUXDB_ORG, INFLUXDB_BUCKET, INFLUXDB_TOKEN);
+Point influxSensor("airgradient");
 
 // Display bottom right
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
 // CONFIGURATION START
 
-//set to the endpoint you would like to use
-String APIROOT = "http://hw.airgradient.com/";
-
 // set to true to switch from Celcius to Fahrenheit
 boolean inF = false;
 
 // set to true if you want to connect to wifi. You have 60 seconds to connect. Then it will go into an offline mode.
 boolean connectWIFI=true;
+
+// Set Timezone
+#define TZ_INFO "GMT0"
 
 // CONFIGURATION END
 
@@ -66,7 +70,7 @@ const int pm25Interval = 5000;
 unsigned long previousPm25 = 0;
 int pm25 = 0;
 
-const int tempHumInterval = 2500;
+const int tempHumInterval = 5000;
 unsigned long previousTempHum = 0;
 float temp = 0;
 int hum = 0;
@@ -82,6 +86,7 @@ void setup() {
 
   if (connectWIFI) {
     connectToWifi();
+    timeSync(TZ_INFO, "pool.ntp.org", "time.nis.gov");
   }
 
   updateOLED2("Warming up the", "sensors.", "");
@@ -105,9 +110,9 @@ void updateCo2() {
   if (currentMillis - previousCo2 >= co2Interval) {
     previousCo2 += co2Interval;
     Co2 = ag.getCO2_Raw();
+    Serial.println();
     Serial.print("Co2 :");
     Serial.println(String(Co2));
-    Serial.println();
   }
 }
 
@@ -166,26 +171,25 @@ void sendToServer() {
   if (currentMillis - previoussendToServer >= sendToServerInterval) {
     previoussendToServer += sendToServerInterval;
 
-    String payload = "{\"wifi\":" + String(WiFi.RSSI())
-    + (Co2 < 0 ? "" : ", \"rco2\":" + String(Co2))
-    + (pm25 < 0 ? "" : ", \"pm02\":" + String(pm25))
-    + ", \"atmp\":" + String(temp)
-    + (hum < 0 ? "" : ", \"rhum\":" + String(hum))
-    + "}";
-
     if(WiFi.status()== WL_CONNECTED) {
-      Serial.println(payload);
-      String POSTURL = APIROOT + "sensors/airgradient:" + String(ESP.getChipId(), HEX) + "/measures";
-      Serial.println(POSTURL);
-      WiFiClient client;
-      HTTPClient http;
-      http.begin(client, POSTURL);
-      http.addHeader("content-type", "application/json");
-      int httpCode = http.POST(payload);
-      String response = http.getString();
-      Serial.println(httpCode);
-      Serial.println(response);
-      http.end();
+      // Clear fields
+      influxSensor.clearFields();
+
+      influxSensor.addField("co2", Co2);
+      influxSensor.addField("pm25", pm25);
+      influxSensor.addField("temp", temp);
+      influxSensor.addField("hum", hum);
+      influxSensor.addField("aqi", PM_TO_AQI_US(pm25));
+
+      // Print what will be written
+      Serial.print("Writing: ");
+      Serial.println(influxSensor.toLineProtocol());
+
+      // Write
+      if (!influxClient.writePoint(influxSensor)) {
+        Serial.print("InfluxDB write failed: ");
+        Serial.println(influxClient.getLastErrorMessage());
+      }
     } else {
       Serial.println("WiFi Disconnected");
     }
@@ -203,6 +207,18 @@ void connectToWifi() {
     updateOLED2("booting into", "offline mode", "");
     Serial.println("failed to connect and hit timeout");
     delay(6000);
+  }
+}
+
+// Influx connection
+void connectToInfluxDb() {
+  if (influxClient.validateConnection()) {
+    Serial.print("Connected to InfluxDB: ");
+    Serial.println(influxClient.getServerUrl());
+  } else {
+    Serial.print("InfluxDB connection failed: ");
+    Serial.println(influxClient.getLastErrorMessage());
+    updateOLED2("Influx connection", "failed", "");
   }
 }
 
