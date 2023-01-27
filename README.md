@@ -3,7 +3,7 @@ Save data from the AirGradient DIY Pro air quality monitor to a locally hosted I
 
 ## Setup
 1. Install libraries
-    * ESP2866 by ESP8266 Community v2.7.4 (in Board Manager)
+    * ESP8266 by ESP8266 Community v2.7.4 (in Board Manager) *
     * AirGradient Air Quality Sensor by AirGradient v2.2.0
     * WifiManager by tzapu, tablatronix v2.0.11-beta
     * U8g2 by oliver v2.32.12
@@ -25,3 +25,5 @@ Save data from the AirGradient DIY Pro air quality monitor to a locally hosted I
 * OLED brightness can be adjusted by setting `u8g2.setContrast(value)` in `setup()`
   * Default is `50`
   * `value`: 0 to 255
+
+\* I experienced frequent crashing using anything newer than ESP8266 v2.7.4, YMMV
