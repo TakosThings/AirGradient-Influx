@@ -2,11 +2,14 @@
 Save data from the AirGradient DIY Pro air quality monitor to a locally hosted Influx DB 2 instance.
 
 ## Setup
+[AirGradient instructions](https://www.airgradient.com/open-airgradient/instructions/diy-pro/) (PCB < 3.7)  
+[Arduino IDE instructions](https://www.airgradient.com/open-airgradient/instructions/basic-setup-skills-and-equipment-needed-to-build-our-airgradient-diy-sensor/)
 1. Install libraries
     * ESP8266 by ESP8266 Community v2.7.4 (in Board Manager) *
     * AirGradient Air Quality Sensor by AirGradient v2.2.0
     * WifiManager by tzapu, tablatronix v2.0.11-beta
-    * U8g2 by oliver v2.32.12
+    * U8g2 by oliver v2.32.15
+    * ESP8266 Influxdb by Tobias Schurg v3.13.1
 1. `mv` or rename `arduino_secrets.h.example` to `arduino_secrets.h`
 1. In Influx DB: create a new org and bucket for your AirGradient
 1. Go to Load Data > Sources > Arduino
@@ -22,6 +25,7 @@ Save data from the AirGradient DIY Pro air quality monitor to a locally hosted I
 
 ## Other
 * Tested with PCB v3.3
+* Use board `LOLIN(WEMOS) D1 R2 & Mini`
 * OLED brightness can be adjusted by setting `u8g2.setContrast(value)` in `setup()`
   * Default is `50`
   * `value`: 0 to 255
