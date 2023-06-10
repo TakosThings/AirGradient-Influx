@@ -35,3 +35,4 @@ Save data from the AirGradient DIY Pro air quality monitor to a locally hosted I
 ## Variants
 * `default`: This is based off the DIY_PRO example. Sensor readings are reported to an InfluxDB instance
 * `no-pm2.5`: Same as above, but with the PM2.5 sensor unplugged. Useful for quiet environments like a bedroom or studio.
+* `scheduled-oled`: Based off `no-pm2.5`. The OLED display is turned off between 0 and 8(am). This can be adjusted (and expanded upon) by modifying `updateOledBrightness()`. The time check is performed every 5 minutes.
